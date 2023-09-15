@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{fs, time::Duration};
 
 use crossterm::event::{self, poll, Event, KeyCode, KeyEvent, KeyModifiers};
 use log4rs::{
@@ -26,20 +26,30 @@ enum InputEvent {
 }
 
 fn main() -> anyhow::Result<()> {
-    // Set up logging
-    let logfile = FileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
-        .build("log/output.log")?;
+    if let Some(mut home) = home::home_dir() {
+        home.push(".rexplorer/log");
 
-    let config = Config::builder()
-        .appender(Appender::builder().build("logfile", Box::new(logfile)))
-        .build(
-            Root::builder()
-                .appender("logfile")
-                .build(log::LevelFilter::Trace),
-        )?;
+        fs::create_dir_all(home.clone())?;
 
-    log4rs::init_config(config)?;
+        home.push("output.log");
+
+        fs::write(home.clone(), "")?;
+
+        // Set up logging
+        let logfile = FileAppender::builder()
+            .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+            .build(home)?;
+
+        let config = Config::builder()
+            .appender(Appender::builder().build("logfile", Box::new(logfile)))
+            .build(
+                Root::builder()
+                    .appender("logfile")
+                    .build(log::LevelFilter::Trace),
+            )?;
+
+        log4rs::init_config(config)?;
+    }
 
     let mut term = terminal::setup_terminal()?;
     let run_result = run(&mut term);

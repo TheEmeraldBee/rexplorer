@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.75"
 crossterm = "0.27.0"
+home = "0.5.5"
 log = "0.4.20"
 log4rs = { version = "1.2.0", features = ["file_appender"] }
 ratatui = { version = "0.23.0", features = ["macros", "all-widgets"] }
