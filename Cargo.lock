@@ -198,6 +198,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rexplorer"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "tui-input",
+ "widgetui",
+]
+
+[[package]]
 name = "rustversion"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -237,15 +246,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8229b473baa5980ac72ef434c4415e70c4b5e71b423043adb4ba059f89c99a1"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "simple_explorer"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "tui-input",
- "widgetui",
 ]
 
 [[package]]
