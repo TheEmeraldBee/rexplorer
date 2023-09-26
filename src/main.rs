@@ -1,4 +1,4 @@
-use std::{cell::RefMut, error::Error, time::Duration};
+use std::{cell::RefMut, env::set_current_dir, error::Error, process::Command, time::Duration};
 
 use folder::{Folder, FolderChunk};
 use tui_input::backend::crossterm::EventHandler;
@@ -23,6 +23,7 @@ pub enum AppState {
     Controls,
     NewFolder,
     TouchFile,
+    RunCommand,
     ConfirmDelete,
 }
 
@@ -65,6 +66,7 @@ fn render(
                 Line::from(" <q> QUIT "),
                 Line::from(" <f> NEW FOLDER "),
                 Line::from(" <t> TOUCH FILE "),
+                Line::from(" <|> RUN COMMAND "),
                 Line::from(" <← → ↑ ↓> NAVIGATE "),
                 Line::from(" <d> DELETE "),
             ])
@@ -100,6 +102,13 @@ fn render(
         );
     }
 
+    if *state == AppState::RunCommand {
+        frame.render_widget(
+            Paragraph::new(input.0.value()).block(BLOCK.title("Enter Command")),
+            chunks.get_chunk::<InputChunk>()?,
+        );
+    }
+
     frame.render_widget(
         Paragraph::new(folder.name()).block(BLOCK),
         chunks.get_chunk::<TitleChunk>()?,
@@ -125,6 +134,7 @@ fn controls(
             KeyCode::Char('d') => *state = AppState::ConfirmDelete,
             KeyCode::Char('f') => *state = AppState::NewFolder,
             KeyCode::Char('t') => *state = AppState::TouchFile,
+            KeyCode::Char('|') => *state = AppState::RunCommand,
             _ => *state = AppState::Navigation,
         }
         events.event = None;
@@ -209,7 +219,10 @@ fn input(
     mut message: RefMut<MessageState>,
     mut input: RefMut<TextInput>,
 ) -> WidgetResult {
-    if *state != AppState::NewFolder && *state != AppState::TouchFile {
+    if *state != AppState::NewFolder
+        && *state != AppState::TouchFile
+        && *state != AppState::RunCommand
+    {
         return Ok(());
     }
 
@@ -240,6 +253,21 @@ fn input(
                     } else {
                         *folder = folder.reload();
                     }
+
+                    input.0.reset();
+                    *state = AppState::Navigation
+                }
+                AppState::RunCommand => {
+                    set_current_dir(folder.path())?;
+                    match Command::new("bash").arg("-c").arg(input.0.value()).output() {
+                        Ok(o) => message
+                            .render_message(o.status.to_string(), Duration::from_millis(1000)),
+                        Err(e) => {
+                            message.render_message(e.to_string(), Duration::from_millis(1000))
+                        }
+                    }
+
+                    *folder = folder.reload();
 
                     input.0.reset();
                     *state = AppState::Navigation

@@ -97,6 +97,10 @@ impl Folder {
         List::new(elements)
     }
 
+    pub fn path(&self) -> PathBuf {
+        self.path.clone()
+    }
+
     pub fn scroll_up(&mut self) {
         if self.selected > 0 {
             self.selected -= 1;
