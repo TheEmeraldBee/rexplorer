@@ -1,15 +1,19 @@
-use std::{ffi::OsString, fs, path::PathBuf};
+use std::{env, ffi::OsString, fs, path::PathBuf};
 
-use ratatui::{
-    style::Style,
-    widgets::{List, ListItem},
+use widgetui::{
+    ratatui::{
+        prelude::Rect,
+        style::Style,
+        widgets::{List, ListItem},
+    },
+    FromState, FromStates, State, States,
 };
-
-use crate::chunks::Chunks;
 
 const BORDER_SIZE: u16 = 3;
 
-#[derive(Debug, Clone)]
+pub struct FolderChunk;
+
+#[derive(Debug, Clone, FromState)]
 pub struct Folder {
     selected: usize,
     path: PathBuf,
@@ -35,6 +39,8 @@ impl From<PathBuf> for Folder {
             path_name = file_name.to_str().unwrap_or("N/A").clone();
         }
 
+        env::set_current_dir(value.clone()).expect("Path should be on filesystem");
+
         Self {
             entries: paths,
             path: value,
@@ -55,10 +61,10 @@ impl From<&str> for Folder {
 }
 
 impl Folder {
-    pub fn as_list(&mut self, chunks: &Chunks) -> List {
+    pub fn as_list(&mut self, chunk: Rect) -> List {
         let mut elements = vec![];
 
-        let rows = chunks.main().height - BORDER_SIZE;
+        let rows = chunk.height - BORDER_SIZE;
         self.rows = rows.into();
 
         for i in self.scroll..self.entries.len() {
@@ -72,17 +78,17 @@ impl Folder {
             {
                 let mut style = Style::new();
                 if i == self.selected {
-                    style = style.bg(ratatui::style::Color::DarkGray);
+                    style = style.bg(widgetui::ratatui::style::Color::DarkGray);
                 }
                 if entry.is_dir() {
                     elements.push(
                         ListItem::new(name.to_string())
-                            .style(style.fg(ratatui::style::Color::Cyan)),
+                            .style(style.fg(widgetui::ratatui::style::Color::Cyan)),
                     );
                 } else {
                     elements.push(
                         ListItem::new(name.to_string())
-                            .style(style.fg(ratatui::style::Color::LightGreen)),
+                            .style(style.fg(widgetui::ratatui::style::Color::LightGreen)),
                     );
                 }
             }
@@ -138,15 +144,6 @@ impl Folder {
         &self.path_name
     }
 
-    pub fn file_name(&self) -> String {
-        self.entries[self.selected]
-            .file_name()
-            .unwrap_or(&OsString::from("N/A"))
-            .to_str()
-            .expect("Should be valid")
-            .to_string()
-    }
-
     pub fn enter(&mut self) -> Option<Self> {
         if self.selected == 0 {
             return self.exit();
@@ -167,7 +164,6 @@ impl Folder {
         let mut path = self.path.clone();
 
         if path.pop() {
-            log::info!("Pop Successfull, path {:?}", path);
             return Some(Self::from(path));
         }
         None
